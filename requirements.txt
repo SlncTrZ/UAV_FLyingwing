@@ -6,43 +6,43 @@
 # =============================================================================
 
 # Numerical & Image Processing
-numpy==1.21.6              # Version ổn định cho RPi, tránh memory issues
-opencv-python==4.5.5.64    # Version nhẹ, tương thích tốt với RPi 3B+
-Pillow==9.5.0              # Image processing
-pyyaml==6.0                # Configuration
+numpy>=2.0.0               # Python 3.13+ compatible version
+opencv-python>=4.8.0       # Latest stable version
+Pillow>=10.0.0             # Image processing
+pyyaml>=6.0                # Configuration
 
 # Logging & Utilities
-loguru==0.7.2              # Structured logging - tiêu thụ ít CPU
+loguru>=0.7.2              # Structured logging - tiêu thụ ít CPU
 
 # MAVLink Communication
-pymavlink==2.4.37          # MAVLink protocol - giao tiếp với ArduPilot
+pymavlink>=2.4.45          # MAVLink protocol - giao tiếp với ArduPilot
 
 # AI Inference - QUAN TRỌNG: Dùng TensorFlow Lite thay vì TensorFlow full
 # TensorFlow Lite runtime nhẹ hơn 10x so với TensorFlow full
-tflite-runtime==2.13.0     # TensorFlow Lite - CHỈ CẦN CHO INFERENCE
+tflite-runtime>=2.16.0     # TensorFlow Lite - CHỈ CẦN CHO INFERENCE
 
 # =============================================================================
 # RASPBERRY PI HARDWARE - CHO CAMERA VÀ GPIO
 # =============================================================================
 
 # Camera Interface - BẮT BUỘC cho Pi Camera
-picamera2==0.3.7           # Raspberry Pi Camera interface
+picamera2>=0.3.7           # Raspberry Pi Camera interface
 
 # GPIO & I2C
-RPi.GPIO==0.7.1            # GPIO control
-smbus2==0.4.3              # I2C communication
+RPi.GPIO>=0.7.1            # GPIO control
+smbus2>=0.4.3              # I2C communication
 
 # =============================================================================
 # OPTIONAL - CHO PHÁT TRIỂN VÀ NGHIÊN CỨU
 # =============================================================================
 
 # Quantum Computing Research (CÓ THỂ BỎ QUA nếu không dùng)
-qiskit==0.44.1             # Quantum computing
-qiskit-aer==0.12.2         # Quantum simulator
+qiskit>=1.0.0              # Quantum computing
+qiskit-aer>=0.14.0         # Quantum simulator
 
 # Testing & Development
-pytest==7.4.3              # Testing
-matplotlib==3.7.2          # Plotting (có thể nặng cho RPi)
+pytest>=8.0.0              # Testing
+matplotlib>=3.8.0          # Plotting (có thể nặng cho RPi)
 
 # =============================================================================
 # INSTALLATION GUIDE CHO RASPBERRY PI 3B+
@@ -59,7 +59,7 @@ matplotlib==3.7.2          # Plotting (có thể nặng cho RPi)
 # source uav_env/bin/activate
 
 # Bước 4: Cài đặt requirements
-# pip install -r requirements_rpi_optimized.txt
+# pip install -r requirements.txt
 
 # Bước 5: Cài đặt TensorFlow Lite runtime (nếu có vấn đề)
 # pip install https://github.com/google-coral/pycoral/releases/download/v2.0.0/tflite_runtime-2.5.0-cp39-cp39-linux_armv7l.whl
