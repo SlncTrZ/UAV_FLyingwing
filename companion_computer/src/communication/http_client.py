@@ -10,6 +10,7 @@ from queue import Queue
 from typing import Dict, Optional, List
 from datetime import datetime
 from pathlib import Path
+import math
 
 try:
     import requests
@@ -28,7 +29,9 @@ class HTTPUploadClient:
     
     def __init__(self, server_url: str = "http://192.168.1.100:5000",
                  api_key: Optional[str] = None,
-                 max_queue_size: int = 100):
+                 max_queue_size: int = 100,
+                 max_retries: int = 3,
+                 retry_delay: float = 1.0):
         """
         Initialize HTTP upload client
         
@@ -36,9 +39,13 @@ class HTTPUploadClient:
             server_url: Ground station server URL
             api_key: Optional API key for authentication
             max_queue_size: Maximum upload queue size
+            max_retries: Maximum retry attempts for failed requests
+            retry_delay: Initial delay between retries (seconds, uses exponential backoff)
         """
         self.server_url = server_url.rstrip('/')
         self.api_key = api_key
+        self.max_retries = max_retries
+        self.retry_delay = retry_delay
         
         # Upload queues
         self.telemetry_queue = Queue(maxsize=max_queue_size)
@@ -63,6 +70,33 @@ class HTTPUploadClient:
         }
         
         logger.info(f"📡 HTTP Upload Client initialized: {server_url}")
+    
+    def _retry_request(self, request_func) -> bool:
+        """
+        Execute request with exponential backoff retry
+        
+        Args:
+            request_func: Function that performs the request (returns bool or raises exception)
+            
+        Returns:
+            True if successful, False if all retries failed
+        """
+        for attempt in range(self.max_retries):
+            try:
+                result = request_func()
+                if result:
+                    return True
+            except Exception as e:
+                logger.warning(f"Request attempt {attempt + 1}/{self.max_retries} failed: {e}")
+                
+                # Exponential backoff: delay = base_delay * 2^attempt
+                if attempt < self.max_retries - 1:
+                    delay = self.retry_delay * (2 ** attempt)
+                    logger.debug(f"Retrying in {delay:.1f}s...")
+                    time.sleep(delay)
+        
+        logger.error(f"All {self.max_retries} retry attempts failed")
+        return False
     
     def start(self):
         """Start upload workers"""
@@ -249,8 +283,8 @@ class HTTPUploadClient:
                 pass
     
     def _upload_telemetry(self, telemetry: Dict) -> bool:
-        """Upload telemetry to server"""
-        try:
+        """Upload telemetry to server with retry logic"""
+        def _do_upload():
             url = f"{self.server_url}/api/telemetry"
             
             headers = {}
@@ -268,22 +302,13 @@ class HTTPUploadClient:
                 logger.debug("Telemetry uploaded successfully")
                 return True
             else:
-                logger.warning(f"Telemetry upload failed: {response.status_code}")
-                return False
-            
-        except requests.exceptions.ConnectionError:
-            logger.warning("Connection error - server unreachable")
-            return False
-        except requests.exceptions.Timeout:
-            logger.warning("Upload timeout")
-            return False
-        except Exception as e:
-            logger.error(f"Telemetry upload error: {e}")
-            return False
+                raise requests.exceptions.HTTPError(f"HTTP {response.status_code}")
+        
+        return self._retry_request(_do_upload)
     
     def _upload_image(self, image: np.ndarray, metadata: Dict) -> bool:
-        """Upload image to server"""
-        try:
+        """Upload image to server with retry logic"""
+        def _do_upload():
             url = f"{self.server_url}/api/image"
             
             # Encode image as JPEG
@@ -315,16 +340,13 @@ class HTTPUploadClient:
                 logger.debug("Image uploaded successfully")
                 return True
             else:
-                logger.warning(f"Image upload failed: {response.status_code}")
-                return False
-            
-        except Exception as e:
-            logger.error(f"Image upload error: {e}")
-            return False
+                raise requests.exceptions.HTTPError(f"HTTP {response.status_code}")
+        
+        return self._retry_request(_do_upload)
     
     def _upload_detection(self, detection: Dict) -> bool:
-        """Upload AI detection to server"""
-        try:
+        """Upload AI detection to server with retry logic"""
+        def _do_upload():
             url = f"{self.server_url}/api/detection"
             
             headers = {}
@@ -342,22 +364,19 @@ class HTTPUploadClient:
                 logger.debug("Detection uploaded successfully")
                 return True
             else:
-                logger.warning(f"Detection upload failed: {response.status_code}")
-                return False
-            
-        except Exception as e:
-            logger.error(f"Detection upload error: {e}")
-            return False
+                raise requests.exceptions.HTTPError(f"HTTP {response.status_code}")
+        
+        return self._retry_request(_do_upload)
     
     def _upload_target_geolocation(self, target: Dict) -> bool:
         """
-        Upload vị trí mục tiêu lên server (POST /api/target)
+        Upload vị trí mục tiêu lên server (POST /api/target) with retry logic
         Args:
             target: dict {'lat': ..., 'lon': ..., ...}
         Returns:
             True nếu thành công, False nếu lỗi
         """
-        try:
+        def _do_upload():
             url = f"{self.server_url}/api/target"
             
             headers = {}
@@ -374,12 +393,9 @@ class HTTPUploadClient:
             if response.status_code == 200:
                 return True
             else:
-                logger.warning(f"Target geolocation upload failed: {response.status_code}")
-                return False
-            
-        except Exception as e:
-            logger.error(f"Target geolocation upload error: {e}")
-            return False
+                raise requests.exceptions.HTTPError(f"HTTP {response.status_code}")
+        
+        return self._retry_request(_do_upload)
     
     def send_command_request(self, command: str, params: Dict = None) -> Optional[Dict]:
         """Request command execution from ground station"""

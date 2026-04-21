@@ -24,6 +24,7 @@ from ai import AdaptiveDetector
 from communication.mavlink_handler import MAVLinkHandler
 from data_logging import DataLogger
 from navigation.geolocation import calculate_target_geolocation
+from safety.gps_monitor import GPSMonitor, GPSData, PilotAlertManager
 
 
 class CompanionComputer:
@@ -43,12 +44,13 @@ class CompanionComputer:
         # Load config
         self.config = self._load_config(config_path)
         
-                # Initialize modules
+        # Initialize modules
         self.camera = None
         self.detector = None
         self.comm = None
         self.data_logger = None
         self.http_client = None
+        self.gps_monitor = None
         
         # AI mode tracking
         self.current_ai_mode = "reconnaissance"  # Default
@@ -138,6 +140,15 @@ class CompanionComputer:
             else:
                 logger.warning("MAVLink communication failed (normal on test systems)")
             
+            # GPS Monitor (Initialize after MAVLink is connected)
+            if self.comm and self.comm.is_connected:
+                self.gps_monitor = GPSMonitor(
+                    on_gps_lost=self._on_gps_lost,
+                    on_gps_recovered=self._on_gps_recovered,
+                    on_status_change=self._on_gps_status_change
+                )
+                logger.info("✓ GPS Monitor initialized (Pilot-Assisted Mode)")
+            
             logger.info("Setup completed")
             return True
             
@@ -215,6 +226,21 @@ class CompanionComputer:
                             'yaw': attitude.get('yaw', 0),
                             'battery': battery
                         }
+                        
+                        # Update GPS Monitor
+                        if self.gps_monitor and 'lat' in gps:
+                            gps_data = GPSData(
+                                timestamp=time.time(),
+                                lat=gps.get('lat', 0),
+                                lon=gps.get('lon', 0),
+                                alt=gps.get('alt', 0),
+                                ground_speed=gps.get('ground_speed', 0),
+                                heading=gps.get('heading', 0),
+                                satellites=gps.get('satellites', 0),
+                                hdop=gps.get('hdop', 99.9),
+                                fix_type=gps.get('fix_type', 0)
+                            )
+                            self.gps_monitor.update(gps_data)
                 
                 # Đưa vào queue (drop frame cũ nếu đầy)
                 package = {
@@ -351,6 +377,24 @@ class CompanionComputer:
             except Exception as e:
                 logger.error(f"Error in upload thread: {e}")
                 time.sleep(0.5)
+    
+    def _on_gps_lost(self):
+        """Callback khi GPS bị mất"""
+        logger.warning("🚨 GPS LOST - Pilot should switch to FBWA/AltHold")
+        if self.data_logger:
+            self.data_logger.log_event("GPS_LOST", "GPS signal lost detected")
+    
+    def _on_gps_recovered(self):
+        """Callback khi GPS phục hồi"""
+        logger.info("✅ GPS RECOVERED - RTL available")
+        if self.data_logger:
+            self.data_logger.log_event("GPS_RECOVERED", "GPS signal recovered")
+    
+    def _on_gps_status_change(self, status, message):
+        """Callback khi trạng thái GPS thay đổi"""
+        logger.info(f"GPS Status: {status.value} - {message}")
+        if self.data_logger:
+            self.data_logger.log_event("GPS_STATUS_CHANGE", f"{status.value}: {message}")
     
     def shutdown(self):
         """Shutdown tất cả modules và threads"""

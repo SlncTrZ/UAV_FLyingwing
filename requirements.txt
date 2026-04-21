@@ -96,4 +96,7 @@ matplotlib>=3.8.0          # Plotting (có thể nặng cho RPi)
 # TensorFlow Lite: ~20MB
 # MAVLink: ~10MB
 # Application: ~100MB
-# TOTAL: ~210MB - Phù hợp với RPi 3B+ (1GB RAM)
+# TOTAL: ~210MB - Phù hợp với RPi 3B+ (1GB RAM)"requests"  
+"ollama"  
+"opencv-python"  
+"numpy" 
