@@ -1,0 +1,4 @@
+# Flying Wing UAV - Raspberry Pi 3B+ Only Requirements
+# Dành riêng cho Raspberry Pi - tflite-runtime chỉ có wheel cho ARM
+
+tflite-runtime>=2.16.0  # TensorFlow Lite - CẦN CHO INFERENCE (RPi only)

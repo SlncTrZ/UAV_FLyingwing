@@ -26,7 +26,7 @@ import numpy as np
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'flying-wing-uav-secret-2025')
+app.config['SECRET_KEY'] = os.environ['FLASK_SECRET_KEY']
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Enable CORS

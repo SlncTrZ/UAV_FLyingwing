@@ -19,7 +19,7 @@ pymavlink>=2.4.45          # MAVLink protocol - giao tiếp với ArduPilot
 
 # AI Inference - QUAN TRỌNG: Dùng TensorFlow Lite thay vì TensorFlow full
 # TensorFlow Lite runtime nhẹ hơn 10x so với TensorFlow full
-tflite-runtime>=2.16.0     # TensorFlow Lite - CHỈ CẦN CHO INFERENCE
+# tflite-runtime>=2.16.0  # MOVED to requirements_rpi.txt (RPi only)
 
 # =============================================================================
 # RASPBERRY PI HARDWARE - CHO CAMERA VÀ GPIO
@@ -96,7 +96,8 @@ matplotlib>=3.8.0          # Plotting (có thể nặng cho RPi)
 # TensorFlow Lite: ~20MB
 # MAVLink: ~10MB
 # Application: ~100MB
-# TOTAL: ~210MB - Phù hợp với RPi 3B+ (1GB RAM)"requests"  
-"ollama"  
-"opencv-python"  
-"numpy" 
+# TOTAL: ~210MB - Phù hợp với RPi 3B+ (1GB RAM)
+requests
+ollama
+opencv-python
+numpy 
